@@ -43,13 +43,9 @@ nuScenes frame
           `-- sin_yaw, cos_yaw
 ```
 
-`C5` используется внутри FPN как верхний top-down источник для построения `P4`.
-Отдельный `P5` в текущем коде не возвращается и не сэмплируется для точек.
-
 ## Качественный пример
 
-Ниже показан qualitative render для cheap-gate threshold `-0.05`. Это визуальная
-проверка поведения модели, а не controlled ablation по порогам.
+Ниже показан qualitative render для cheap-gate threshold `-0.05`. 
 
 ![PointBEV qualitative example](docs/assets/point_bev_gate_m005.png)
 
