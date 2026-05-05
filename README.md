@@ -1,19 +1,27 @@
 # PointBEV v0
 
-Camera-conditioned point-based BEV detector for `nuScenes`.
+PointBEV v0 - экспериментальный baseline для BEV-детекции на `nuScenes`, где
+предсказания строятся вокруг LiDAR-точек и дополняются признаками из нескольких
+камер.
 
-## Overview
+## Описание
 
-PointBEV v0 is a compact baseline for BEV-2D detection from LiDAR points and
-multi-view camera images. The model keeps one prediction per retained LiDAR
-point, fuses point-wise image features with lightweight LiDAR BEV context, and
-predicts objectness, class, center offset, BEV size, and yaw.
+Модель решает задачу BEV-2D detection: для отобранных LiDAR-точек она
+предсказывает `objectness`, класс, смещение центра объекта в BEV, размер
+`width/length` и yaw. Камеры используются не как отдельный image-detector, а как
+источник point-wise признаков: LiDAR-точка проецируется в видимые камеры,
+забирает локальные признаки из image backbone, после чего несколько видов
+агрегируются в один признак точки.
 
-This repository intentionally contains only the clean v0 training baseline. The
-older polar / cached Stage 2 experiments and clustering-only experiments are
-not included.
+LiDAR-часть сделана легкой. Из точек строится BEV stats map с каналами
+`count`, `occupied`, `z_max`, `height_range`; небольшой CNN превращает ее в
+локальный LiDAR-контекст. Этот контекст используется для дешевого gate и для
+геометрической поддержки финальных head-ов.
 
-## Architecture
+Результаты намеренно не вынесены в README: текущий v0 нужен как чистая
+структурированная версия baseline, а не как финальный качественный результат.
+
+## Архитектура
 
 ```text
 nuScenes frame
@@ -24,7 +32,8 @@ nuScenes frame
     |     `-- TinyLidarFeatureMap -> fine/context LiDAR features
     |
     |-- six camera images
-    |     `-- ResNet + FPN -> C2, P2, P3, P4
+    |     |-- ResNet-18 backbone -> C2, C3, C4, C5
+    |     `-- FPN top-down from C5 -> sampled C2, P2, P3, P4, P2_gate
     |
     |-- cheap gate
     |     `-- low-channel P2 center + local LiDAR context
@@ -37,31 +46,17 @@ nuScenes frame
           `-- sin_yaw, cos_yaw
 ```
 
-## Qualitative Example
+`C5` используется внутри FPN как верхний top-down источник для построения `P4`.
+Отдельный `P5` в текущем коде не возвращается и не сэмплируется для точек.
 
-The example below uses a qualitative checkpoint/render with cheap-gate
-threshold `-0.05`. It is a deployment-style visual sanity check, not a
-controlled ablation across gate thresholds.
+## Качественный пример
+
+Ниже показан qualitative render для cheap-gate threshold `-0.05`. Это визуальная
+проверка поведения модели, а не controlled ablation по порогам.
 
 ![PointBEV qualitative example](docs/assets/point_bev_gate_m005.png)
 
-## Training
-
-Edit the config block at the top of `train.py`, then run:
-
-```bash
-python train.py
-```
-
-The default paths are Colab-friendly:
-
-```text
-DATAROOT = /content/data/nuscenes
-VERSION = v1.0-trainval
-SAVE_DIR = /content/drive/MyDrive/point_bev
-```
-
-## Requirements
+## Зависимости
 
 ```text
 torch
@@ -73,7 +68,7 @@ tqdm
 pyquaternion
 ```
 
-## Project Structure
+## Структура
 
 ```text
 point_bev_nuscenes/
